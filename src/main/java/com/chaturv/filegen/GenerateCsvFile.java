@@ -42,58 +42,31 @@ public class GenerateCsvFile {
         txnColsToValueGens.put("TRADER", new RandomStringFromListGenerator(TRADERS));
         txnColsToValueGens.put("PRICE", new DecimalRangeGenerator(BigDecimal.valueOf(10.88), BigDecimal.valueOf(88.10)));
         txnColsToValueGens.put("QTY", new IntegerRangeGenerator(100, 100000));
-        txnColsToValueGens.put("INSTRUMENT_ID", new IntegerRangeGenerator(100, 200));
-
-        //INSTRUMENT_ID will be added as first column
-        instrColsToValueGens.put("SRC_INSTRUMENT", new RandomStringFromListGenerator(INSTRUMENTS));
+        txnColsToValueGens.put("INSTRUMENT", new RandomStringFromListGenerator(INSTRUMENTS));
     }
 
     private void generate() throws IOException {
         //write txn file
-        FileWriter writer = new FileWriter(outputDir + "\\" + TXN_FILE_NAME);
-        String line_sep = "\n";
+        try (FileWriter writer = new FileWriter(outputDir + TXN_FILE_NAME)) {
+            String line_sep = "\n";
 
-        //cols
-        Set<String> cols = txnColsToValueGens.keySet();
-        writer.append(cols.stream().collect(Collectors.joining(",")));
-        writer.append(line_sep);
+            //cols
+            Set<String> cols = txnColsToValueGens.keySet();
+            writer.append("#").append(cols.stream().collect(Collectors.joining(",")));
+            writer.append(line_sep);
 
-        Set<Integer> distinctInstIds = new HashSet<Integer>();
-        for (int i = 0; i < noOfDays * rowsPerDay; i++) {
-            StringBuilder row = new StringBuilder("");
-            for (String col : cols) {
-                Object val = txnColsToValueGens.get(col).generate();
-                row.append(val).append(",");
-
-                if (col.equals("INSTRUMENT_ID")) {
-                    distinctInstIds.add((Integer) val);
+            for (int i = 0; i < noOfDays * rowsPerDay; i++) {
+                StringBuilder row = new StringBuilder("");
+                for (String col : cols) {
+                    Object val = txnColsToValueGens.get(col).generate();
+                    row.append(val).append(",");
                 }
+                row.deleteCharAt(row.length() - 1);
+                writer.append(row.toString());
+                writer.append(line_sep);
             }
-            row.deleteCharAt(row.length() - 1);
-            writer.append(row.toString());
-            writer.append(line_sep);
         }
 
-        writer.close();
-
-        //write instruments file
-        writer = new FileWriter(outputDir + "\\" + INSTR_FILE_NAME);
-        cols = instrColsToValueGens.keySet();
-        writer.append("INSTRUMENT_ID,").append(cols.stream().collect(Collectors.joining(",")));
-        writer.append(line_sep);
-
-        for (Integer instId : distinctInstIds) {
-            StringBuilder row = new StringBuilder(instId + ",");
-            for (String col : cols) {
-                Object val = instrColsToValueGens.get(col).generate();
-                row.append(val).append(",");
-            }
-            row.deleteCharAt(row.length() - 1);
-            writer.append(row.toString());
-            writer.append(line_sep);
-        }
-
-        writer.close();
     }
 
     public static void main(String[] args) throws IOException {
